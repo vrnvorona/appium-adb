@@ -289,6 +289,60 @@ describe('Apk-utils', withMocks({adb, fs, teen_process}, function (mocks) {
       await adb.waitForActivityOrNot('com.android.settings,com.example.android.supermanager', '.ContactManager, .OtherManager', false, 1000)
         .should.eventually.be.rejected;
     });
+    it('should match packages if waitPackage contains a wildcard', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u com.example.*/.ContactManager t181}}}`);
+
+      await adb.waitForActivityOrNot(`com.example.*`, `.ContactManager`, false);
+    });
+
+    it('should match packages if waitPackage contains a wildcard at the end', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u com.example.android.*/.ContactManager t181}}}`);
+
+      await adb.waitForActivityOrNot(`com.example.android.*`, `.ContactManager`, false);
+    });
+
+    it('should match packages and activities if both waitPackage and waitActivity contain wildcards', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u com.example.android.*/.*Manager t181}}}`);
+
+      await adb.waitForActivityOrNot(`com.example.android.*`, `.*Manager`, false);
+    });
+
+    it('should not match incorrect package even if activity matches', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u com.wrong.package/.ContactManager t181}}}`);
+
+      await adb.waitForActivityOrNot(`com.example.android.*`, `.ContactManager`, false)
+        .should.eventually.be.rejected;
+    });
+
+    it('should match package from a list where package has a wildcard', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u com.example.android.*/.ContactManager t181}}}`);
+
+      await adb.waitForActivityOrNot('com.example.android.*,com.other.package', `.ContactManager`, false);
+    });
+
+    it('should match the only available activity when given multiple wildcards', async function () {
+      mocks.adb.expects('dumpWindows')
+        .once()
+        .returns(`mFocusedApp=AppWindowToken{38600b56 token=Token{9ea1171 ` +
+                 `ActivityRecord{2 u ${pkg}/.OnlyActivity t181}}}`);
+
+      await adb.waitForActivityOrNot(pkg, `.MissingActivity,.*OnlyActivity`, false);
+    });
   });
   describe('waitForActivity', function () {
     it('should call waitForActivityOrNot with correct arguments', async function () {

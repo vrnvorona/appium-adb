@@ -220,6 +220,49 @@ describe('apk utils', function () {
         waitDuration: START_APP_WAIT_DURATION_FAIL,
       }).should.eventually.be.rejectedWith('Activity');
     });
+    it('should be able to start with wildcard in package name', async function () {
+      await adb.install(contactManagerPath, {
+        grantPermissions: true
+      });
+      await adb.startApp({
+        pkg: 'com.example.android.*',
+        activity: 'ContactManager',
+        waitDuration: START_APP_WAIT_DURATION,
+      });
+      await assertPackageAndActivity();
+    });
+
+    it('should throw an error for invalid wildcard in package name', async function () {
+      await adb.install(contactManagerPath, {
+        grantPermissions: true
+      });
+      await adb.startApp({
+        pkg: 'com.example.android.*notExist',
+        activity: 'ContactManager',
+        waitDuration: START_APP_WAIT_DURATION_FAIL,
+      }).should.eventually.be.rejectedWith('Package');
+    });
+
+    it('should start app with waitPkg without defining any activity', async function () {
+      await adb.install(contactManagerPath, {
+        grantPermissions: true
+      });
+      await adb.startApp({
+        pkg: CONTACT_MANAGER_APP_ID,
+        waitPkg: 'com.example.android.contactmanager',
+        waitDuration: START_APP_WAIT_DURATION,
+      });
+      await assertPackageAndActivity();
+    });
+
+    it('should throw an error when trying to start app without installing', async function () {
+      // Assuming contactManagerPath application isn't installed now
+      await adb.startApp({
+        pkg: CONTACT_MANAGER_APP_ID,
+        activity: 'ContactManager',
+        waitDuration: START_APP_WAIT_DURATION_FAIL,
+      }).should.eventually.be.rejectedWith('Application not installed');
+    });
   });
   it('should start activity when start activity is an inner class', async function () {
     await adb.install(contactManagerPath, {
